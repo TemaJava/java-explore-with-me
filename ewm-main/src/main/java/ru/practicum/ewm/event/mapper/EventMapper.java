@@ -32,18 +32,18 @@ public class EventMapper {
                 event.getPublishedOn().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                 event.getRequestModeration(),
                 event.getEventState().name(), event.getTitle(), 0L);
-    };
+    }
 
     public EventShortDto toShortEventDto(Event event) {
         return new EventShortDto(event.getId(), event.getAnnotation(),
                 CategoryMapper.toCategoryDto(event.getCategory()), 0,
                 event.getEventDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                 UserMapper.toUserShortDto(event.getInitiator()), event.getPaid(), event.getTitle(), 0L);
-    };
+    }
 
     public EventShortDto toShortFromFull(EventFullDto event) {
         return new EventShortDto(event.getId(), event.getAnnotation(),
                 event.getCategory(), 0, event.getEventDate(),
                 event.getInitiator(), event.getPaid(), event.getTitle(), 0L);
-    };
+    }
 }
