@@ -20,9 +20,9 @@ public class AdminUserController {
     private final UserService userService;
 
     @GetMapping
-    public List<UserDto> getAllUsersInfo( @RequestParam(name = "ids", required = false) List<Long> userIds,
-                                          @PositiveOrZero @RequestParam(defaultValue = "0") int from,
-                                          @Positive @RequestParam(defaultValue = "10") int size) {
+    public List<UserDto> getAllUsersInfo(@RequestParam(name = "ids", required = false) List<Long> userIds,
+                                         @PositiveOrZero @RequestParam(defaultValue = "0") int from,
+                                         @Positive @RequestParam(defaultValue = "10") int size) {
         return userService.findAllUsersInfo(userIds, Pagination.toPageable(from, size));
     }
 
