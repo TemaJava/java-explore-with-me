@@ -15,13 +15,13 @@ import ru.practicum.ewm.event.model.AdminEventState;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.model.EventState;
 import ru.practicum.ewm.event.model.UserEventState;
-import ru.practicum.ewm.event.repository.EventCustomRepository;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.exception.BadRequestException;
 import ru.practicum.ewm.exception.ObjectNotFoundException;
 import ru.practicum.ewm.exception.ValidationException;
 import ru.practicum.ewm.location.model.Location;
 import ru.practicum.ewm.location.repository.LocationRepository;
+import ru.practicum.ewm.pagination.Pagination;
 import ru.practicum.ewm.request.dto.RequestDto;
 import ru.practicum.ewm.request.mapper.RequestMapper;
 import ru.practicum.ewm.request.model.Request;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventServiceImpl implements EventService {
     private final EventRepository eventRepository;
-    private final EventCustomRepository eventCustomRepository;
+    private final EventRepository eventCustomRepository;
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final CategoryRepository categoryRepository;
     private final LocationRepository locationRepository;
@@ -55,8 +55,17 @@ public class EventServiceImpl implements EventService {
     public List<EventFullDto> adminFindEvents(List<Long> users, List<EventState> states,
                                               List<Long> categories, String rangeStart, String rangeEnd,
                                               Integer from, Integer size) {
-        List<EventFullDto> fullEventDtoList = eventCustomRepository.findEvents(users, states, categories,
-                        rangeStart, rangeEnd, from, size)
+        LocalDateTime start = null;
+        LocalDateTime end = null;
+        if (rangeStart != null) {
+            start = LocalDateTime.parse(rangeStart, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
+        if (rangeStart != null) {
+            end = LocalDateTime.parse(rangeEnd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
+
+        List<EventFullDto> fullEventDtoList = eventCustomRepository.findEventsByParams(users, states, categories,
+                        start, end, Pagination.toPageable(from, size))
                 .stream()
                 .map(EventMapper::toEventFullDto)
                 .collect(Collectors.toList());
@@ -208,6 +217,9 @@ public class EventServiceImpl implements EventService {
         if (text == null) text = "";
         List<Event> events = eventRepository.findByParamsOrderByDate(text.toLowerCase(), List.of(EventState.PUBLISHED),
                 categories, paid, start, end, pageable);
+        if (events.isEmpty()) {
+            throw new BadRequestException("Event must be published");
+        }
         List<EventFullDto> fullEventDtoList = events.stream()
                 .map(EventMapper::toEventFullDto)
                 .collect(Collectors.toList());
@@ -231,7 +243,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventFullDto findEventById(Long id, HttpServletRequest request) {
+    public EventFullDto publicFindEventById(Long id, HttpServletRequest request) {
         Event event = eventRepository.findById(id).orElseThrow(() -> {
             throw new ObjectNotFoundException("Event not found");
         });
@@ -244,6 +256,7 @@ public class EventServiceImpl implements EventService {
         fullEventDto.setConfirmedRequests(requestsRepository.findAllByEventIdAndStatus(event.getId(),
                 RequestStatus.CONFIRMED).size());
         statService.createView(HitMapper.toEndpointHit("ewm-main-service", request));
+
         return getViews(Collections.singletonList(fullEventDto)).get(0);
     }
 
@@ -299,7 +312,7 @@ public class EventServiceImpl implements EventService {
         Object responseBody = statService.getViewStats(min.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                         max.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                         new ArrayList<>(views.keySet()),
-                        false)
+                        true)
                 .getBody();
         List<ViewStatsDto> viewStatsList = new ObjectMapper().convertValue(responseBody, new TypeReference<>() {
         });

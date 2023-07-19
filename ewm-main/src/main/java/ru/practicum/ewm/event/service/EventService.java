@@ -26,7 +26,7 @@ public interface EventService {
                                          String rangeEnd, Boolean onlyAvailable, String sort, Pageable pageable,
                                          HttpServletRequest request);
 
-    EventFullDto findEventById(Long id, HttpServletRequest request);
+    EventFullDto publicFindEventById(Long id, HttpServletRequest request);
 
     List<RequestDto> getEventRequests(long userId, long eventId);
 }
