@@ -5,7 +5,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.compilation.dto.CompilationDto;
 import ru.practicum.ewm.compilation.service.CompilationService;
-import ru.practicum.ewm.pagination.Pagination;
+import ru.practicum.ewm.user.pagination.Pagination;
 
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;

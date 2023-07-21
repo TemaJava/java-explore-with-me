@@ -20,16 +20,15 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public List<UserDto> findAllUsersInfo(List<Long> ids, Pageable pageable) {
-        boolean idsEmptyOrNull = ids == null || ids.isEmpty();
+    public List<UserDto> findAllUsersInId(List<Long> ids, Pageable pageable) {
+        return userRepository.findAllByIdIn(ids, pageable).stream()
+                .map(UserMapper::toUserDto).collect(Collectors.toList());
+    }
 
-        if (idsEmptyOrNull) {
-            return userRepository.findAll(pageable).stream()
-                    .map(UserMapper::toUserDto).collect(Collectors.toList());
-        } else {
-            return userRepository.findAllByIdIn(ids, pageable).stream()
-                    .map(UserMapper::toUserDto).collect(Collectors.toList());
-        }
+    @Override
+    public List<UserDto> findAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).stream()
+                .map(UserMapper::toUserDto).collect(Collectors.toList());
     }
 
     @Override

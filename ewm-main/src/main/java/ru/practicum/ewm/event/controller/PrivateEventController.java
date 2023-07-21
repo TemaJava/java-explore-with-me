@@ -6,7 +6,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.event.dto.*;
 import ru.practicum.ewm.event.service.EventService;
-import ru.practicum.ewm.pagination.Pagination;
+import ru.practicum.ewm.user.pagination.Pagination;
 import ru.practicum.ewm.request.dto.RequestDto;
 import ru.practicum.ewm.request.service.RequestService;
 
@@ -44,8 +44,8 @@ public class PrivateEventController {
     @PatchMapping("/{eventId}")
     public EventFullDto privateUpdateEventByCreator(@PathVariable Long userId,
                                                     @PathVariable Long eventId,
-                                                    @RequestBody @Validated UpdateEventUserRequest updateEventUserRequest) {
-        return eventService.privateUpdateEventByCreator(userId, eventId, updateEventUserRequest);
+                                                    @RequestBody @Validated UpdateEventRequest updateEventRequest) {
+        return eventService.privateUpdateEventByCreator(userId, eventId, updateEventRequest);
     }
 
     @GetMapping("/{eventId}/requests")

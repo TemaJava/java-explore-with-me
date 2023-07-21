@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.event.dto.EventFullDto;
 import ru.practicum.ewm.event.dto.EventShortDto;
 import ru.practicum.ewm.event.service.EventService;
-import ru.practicum.ewm.pagination.Pagination;
+import ru.practicum.ewm.user.pagination.Pagination;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Positive;

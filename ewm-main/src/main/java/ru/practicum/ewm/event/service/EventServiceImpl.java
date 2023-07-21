@@ -21,7 +21,7 @@ import ru.practicum.ewm.exception.ObjectNotFoundException;
 import ru.practicum.ewm.exception.ValidationException;
 import ru.practicum.ewm.location.model.Location;
 import ru.practicum.ewm.location.repository.LocationRepository;
-import ru.practicum.ewm.pagination.Pagination;
+import ru.practicum.ewm.user.pagination.Pagination;
 import ru.practicum.ewm.request.dto.RequestDto;
 import ru.practicum.ewm.request.mapper.RequestMapper;
 import ru.practicum.ewm.request.model.Request;
@@ -50,20 +50,15 @@ public class EventServiceImpl implements EventService {
     private final RequestRepository requestsRepository;
     private final UserRepository userRepository;
     private final StatService statService;
+    LocalDateTime start = null;
+    LocalDateTime end = null;
 
     @Override
     public List<EventFullDto> adminFindEvents(List<Long> users, List<EventState> states,
                                               List<Long> categories, String rangeStart, String rangeEnd,
                                               Integer from, Integer size) {
-        LocalDateTime start = null;
-        LocalDateTime end = null;
-        if (rangeStart != null) {
-            start = LocalDateTime.parse(rangeStart, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        }
-        if (rangeStart != null) {
-            end = LocalDateTime.parse(rangeEnd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        }
 
+        setRanges(rangeStart, rangeEnd);
         List<EventFullDto> fullEventDtoList = eventCustomRepository.findEventsByParams(users, states, categories,
                         start, end, Pagination.toPageable(from, size))
                 .stream()
@@ -76,49 +71,49 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    public EventFullDto adminUpdateEvent(Long eventId, UpdateEventAdminRequest updateEventAdminRequest) {
+    public EventFullDto adminUpdateEvent(Long eventId, UpdateEventRequest updateEventRequest) {
         Event event = eventRepository.findById(eventId).orElseThrow(() -> {
             throw new ObjectNotFoundException("Event not found");
         });
-        if (updateEventAdminRequest.getEventDate() != null) {
-            if (LocalDateTime.parse(updateEventAdminRequest.getEventDate(),
+        if (updateEventRequest.getEventDate() != null) {
+            if (LocalDateTime.parse(updateEventRequest.getEventDate(),
                     dateTimeFormatter).isBefore(LocalDateTime.now())) {
                 throw new BadRequestException("Date in the past");
             } else {
-                event.setEventDate(LocalDateTime.parse(updateEventAdminRequest.getEventDate(),
+                event.setEventDate(LocalDateTime.parse(updateEventRequest.getEventDate(),
                         dateTimeFormatter));
             }
         }
         if (event.getEventState() == EventState.PUBLISHED
-                && updateEventAdminRequest.getStateAction().equalsIgnoreCase(AdminEventState.PUBLISH_EVENT.name())) {
+                && updateEventRequest.getStateAction().equalsIgnoreCase(AdminEventState.PUBLISH_EVENT.name())) {
             throw new ValidationException("Event is already published");
         }
         if (event.getEventState() == EventState.CANCELED
-                && updateEventAdminRequest.getStateAction().equalsIgnoreCase(AdminEventState.PUBLISH_EVENT.name())) {
+                && updateEventRequest.getStateAction().equalsIgnoreCase(AdminEventState.PUBLISH_EVENT.name())) {
             throw new ValidationException("Event is canceled");
         }
         if (event.getEventState() == EventState.PUBLISHED
-                && updateEventAdminRequest.getStateAction().equalsIgnoreCase(AdminEventState.REJECT_EVENT.name())) {
+                && updateEventRequest.getStateAction().equalsIgnoreCase(AdminEventState.REJECT_EVENT.name())) {
             throw new ValidationException("Event is published. You can't reject it");
         }
-        if (updateEventAdminRequest.getStateAction() != null) {
-            if (updateEventAdminRequest.getStateAction().equals(AdminEventState.PUBLISH_EVENT.name())) {
+        if (updateEventRequest.getStateAction() != null) {
+            if (updateEventRequest.getStateAction().equals(AdminEventState.PUBLISH_EVENT.name())) {
                 event.setEventState(EventState.PUBLISHED);
-            } else if (updateEventAdminRequest.getStateAction().equals(AdminEventState.REJECT_EVENT.name())
+            } else if (updateEventRequest.getStateAction().equals(AdminEventState.REJECT_EVENT.name())
                     && event.getEventState() != EventState.PUBLISHED) {
                 event.setEventState(EventState.CANCELED);
             }
         }
-        if (updateEventAdminRequest.getCategory() != null) {
-            Category category = categoryRepository.findById(updateEventAdminRequest.getCategory()).orElseThrow(() -> {
+        if (updateEventRequest.getCategory() != null) {
+            Category category = categoryRepository.findById(updateEventRequest.getCategory()).orElseThrow(() -> {
                 throw new ObjectNotFoundException("Category not found for update");
             });
             event.setCategory(category);
         }
-        if (updateEventAdminRequest.getLocation() != null) {
-            event.setLocation(locationRepository.save(updateEventAdminRequest.getLocation()));
+        if (updateEventRequest.getLocation() != null) {
+            event.setLocation(locationRepository.save(updateEventRequest.getLocation()));
         }
-        toEventFromUpdateEventAdminRequest(event, updateEventAdminRequest);
+        toEventFromUpdateRequest(event, updateEventRequest);
         eventRepository.save(event);
         EventFullDto fullEventDto = EventMapper.toEventFullDto(event);
         getConfirmedRequests(Collections.singletonList(fullEventDto));
@@ -171,13 +166,13 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventFullDto privateUpdateEventByCreator(Long userId, Long eventId,
-                                                    UpdateEventUserRequest updateEventUserRequest) {
+                                                    UpdateEventRequest updateEventRequest) {
         Event event = eventRepository.findById(eventId).orElseThrow();
         if (!event.getInitiator().getId().equals(userId)) {
             throw new ObjectNotFoundException("You can't update this event");
         }
-        if (updateEventUserRequest.getEventDate() != null) {
-            LocalDateTime time = LocalDateTime.parse(updateEventUserRequest.getEventDate(),
+        if (updateEventRequest.getEventDate() != null) {
+            LocalDateTime time = LocalDateTime.parse(updateEventRequest.getEventDate(),
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             if (LocalDateTime.now().isAfter(time.minusHours(2))) {
                 throw new BadRequestException("Event starts in less then 2 hours");
@@ -186,16 +181,16 @@ public class EventServiceImpl implements EventService {
         if (event.getEventState().equals(EventState.PUBLISHED)) {
             throw new ValidationException("You can't update published event");
         }
-        if (updateEventUserRequest.getCategory() != null && !Objects.equals(updateEventUserRequest.getCategory(),
+        if (updateEventRequest.getCategory() != null && !Objects.equals(updateEventRequest.getCategory(),
                 event.getCategory().getId())) {
-            Category category = categoryRepository.findById(updateEventUserRequest.getCategory()).orElseThrow();
+            Category category = categoryRepository.findById(updateEventRequest.getCategory()).orElseThrow();
             event.setCategory(category);
         }
-        if (updateEventUserRequest.getLocation() != null) {
-            Location location = locationRepository.save(updateEventUserRequest.getLocation());
+        if (updateEventRequest.getLocation() != null) {
+            Location location = locationRepository.save(updateEventRequest.getLocation());
             event.setLocation(location);
         }
-        toEventFromUpdateEventPrivateRequest(event, updateEventUserRequest);
+        toEventFromUpdateRequest(event, updateEventRequest);
         EventFullDto fullEventDto = EventMapper.toEventFullDto(event);
         fullEventDto.setConfirmedRequests(requestsRepository.findAllByEventIdAndStatus(eventId, RequestStatus.CONFIRMED)
                 .size());
@@ -206,14 +201,7 @@ public class EventServiceImpl implements EventService {
     public List<EventShortDto> publicFindEvents(String text, List<Long> categories, Boolean paid, String rangeStart,
                                                 String rangeEnd, Boolean onlyAvailable, String sort,
                                                 Pageable pageable, HttpServletRequest request) {
-        LocalDateTime start = null;
-        LocalDateTime end = null;
-        if (rangeStart != null) {
-            start = LocalDateTime.parse(rangeStart, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        }
-        if (rangeStart != null) {
-            end = LocalDateTime.parse(rangeEnd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        }
+        setRanges(rangeStart, rangeEnd);
         if (text == null) text = "";
         List<Event> events = eventRepository.findByParamsOrderByDate(text.toLowerCase(), List.of(EventState.PUBLISHED),
                 categories, paid, start, end, pageable);
@@ -324,67 +312,34 @@ public class EventServiceImpl implements EventService {
         return new ArrayList<>(views.values());
     }
 
-    public static void toEventFromUpdateEventPrivateRequest(Event event,
-                                                   UpdateEventUserRequest updateEventUserRequest) {
-        if (Objects.equals(updateEventUserRequest.getStateAction(), UserEventState.CANCEL_REVIEW.name())) {
+    public static void toEventFromUpdateRequest(Event event, UpdateEventRequest updateEventRequest ) {
+        if (Objects.equals(updateEventRequest.getStateAction(), UserEventState.CANCEL_REVIEW.name())) {
             event.setEventState(EventState.CANCELED);
         }
-        if (Objects.equals(updateEventUserRequest.getStateAction(), UserEventState.SEND_TO_REVIEW.name())) {
+        if (Objects.equals(updateEventRequest.getStateAction(), UserEventState.SEND_TO_REVIEW.name())) {
             event.setEventState(EventState.PENDING);
         }
-        if (updateEventUserRequest.getAnnotation() != null) {
-            event.setAnnotation(updateEventUserRequest.getAnnotation());
+        if (updateEventRequest.getAnnotation() != null) {
+            event.setAnnotation(updateEventRequest.getAnnotation());
         }
-        if (updateEventUserRequest.getDescription() != null) {
-            event.setDescription(updateEventUserRequest.getDescription());
+        if (updateEventRequest.getDescription() != null) {
+            event.setDescription(updateEventRequest.getDescription());
         }
-        if (updateEventUserRequest.getEventDate() != null) {
-            event.setEventDate(LocalDateTime.parse(updateEventUserRequest.getEventDate(),
+        if (updateEventRequest.getEventDate() != null) {
+            event.setEventDate(LocalDateTime.parse(updateEventRequest.getEventDate(),
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
-        if (updateEventUserRequest.getPaid() != null) {
-            event.setPaid(updateEventUserRequest.getPaid());
+        if (updateEventRequest.getPaid() != null) {
+            event.setPaid(updateEventRequest.getPaid());
         }
-        if (updateEventUserRequest.getParticipantLimit() != null) {
-            event.setParticipantLimit(updateEventUserRequest.getParticipantLimit());
+        if (updateEventRequest.getParticipantLimit() != null) {
+            event.setParticipantLimit(updateEventRequest.getParticipantLimit());
         }
-        if (updateEventUserRequest.getRequestModeration() != null) {
-            event.setRequestModeration(updateEventUserRequest.getRequestModeration());
+        if (updateEventRequest.getRequestModeration() != null) {
+            event.setRequestModeration(updateEventRequest.getRequestModeration());
         }
-        if (updateEventUserRequest.getTitle() != null) {
-            event.setTitle(updateEventUserRequest.getTitle());
-        }
-    }
-
-    public static void toEventFromUpdateEventAdminRequest(Event event,
-                                                          UpdateEventAdminRequest updateEventAdminRequest) {
-        if (Objects.equals(updateEventAdminRequest.getStateAction(), UserEventState.CANCEL_REVIEW.name())) {
-            event.setEventState(EventState.CANCELED);
-        }
-        if (Objects.equals(updateEventAdminRequest.getStateAction(), UserEventState.SEND_TO_REVIEW.name())) {
-            event.setEventState(EventState.PENDING);
-        }
-        if (updateEventAdminRequest.getAnnotation() != null) {
-            event.setAnnotation(updateEventAdminRequest.getAnnotation());
-        }
-        if (updateEventAdminRequest.getDescription() != null) {
-            event.setDescription(updateEventAdminRequest.getDescription());
-        }
-        if (updateEventAdminRequest.getEventDate() != null) {
-            event.setEventDate(LocalDateTime.parse(updateEventAdminRequest.getEventDate(),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        }
-        if (updateEventAdminRequest.getPaid() != null) {
-            event.setPaid(updateEventAdminRequest.getPaid());
-        }
-        if (updateEventAdminRequest.getParticipantLimit() != null) {
-            event.setParticipantLimit(updateEventAdminRequest.getParticipantLimit());
-        }
-        if (updateEventAdminRequest.getRequestModeration() != null) {
-            event.setRequestModeration(updateEventAdminRequest.getRequestModeration());
-        }
-        if (updateEventAdminRequest.getTitle() != null) {
-            event.setTitle(updateEventAdminRequest.getTitle());
+        if (updateEventRequest.getTitle() != null) {
+            event.setTitle(updateEventRequest.getTitle());
         }
     }
 
@@ -420,5 +375,16 @@ public class EventServiceImpl implements EventService {
         requests.forEach(element -> counter.put(element.getEvent().getId(),
                 counter.getOrDefault(element.getEvent().getId(), 0) + 1));
         eventList.forEach(event -> event.setConfirmedRequests(counter.get(event.getId())));
+    }
+
+    private void setRanges(String startRange, String endRange) {
+        start = null;
+        end = null;
+        if (startRange != null) {
+            start = LocalDateTime.parse(startRange, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
+        if (startRange != null) {
+            end = LocalDateTime.parse(endRange, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
     }
 }

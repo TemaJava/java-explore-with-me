@@ -12,7 +12,7 @@ public interface EventService {
     List<EventFullDto> adminFindEvents(List<Long> users, List<EventState> states, List<Long> categories,
                                        String rangeStart, String rangeEnd, Integer from, Integer size);
 
-    EventFullDto adminUpdateEvent(Long eventId, UpdateEventAdminRequest updateEventAdminRequest);
+    EventFullDto adminUpdateEvent(Long eventId, UpdateEventRequest updateEventAdminRequest);
 
     List<EventShortDto> privateGetCreatorsEvents(Long userId, Pageable pageable);
 
@@ -20,7 +20,7 @@ public interface EventService {
 
     EventFullDto privateGetEventInfoByCreator(Long userId, Long eventId);
 
-    EventFullDto privateUpdateEventByCreator(Long userID, Long eventId, UpdateEventUserRequest updateEventUserRequest);
+    EventFullDto privateUpdateEventByCreator(Long userID, Long eventId, UpdateEventRequest updateEventUserRequest);
 
     List<EventShortDto> publicFindEvents(String text, List<Long> categories, Boolean paid, String rangeStart,
                                          String rangeEnd, Boolean onlyAvailable, String sort, Pageable pageable,

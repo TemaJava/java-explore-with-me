@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.ewm.pagination.Pagination;
+import ru.practicum.ewm.user.pagination.Pagination;
 import ru.practicum.ewm.user.dto.UserDto;
 import ru.practicum.ewm.user.service.UserService;
 
@@ -23,7 +23,11 @@ public class AdminUserController {
     public List<UserDto> getAllUsersInfo(@RequestParam(name = "ids", required = false) List<Long> userIds,
                                          @PositiveOrZero @RequestParam(defaultValue = "0") int from,
                                          @Positive @RequestParam(defaultValue = "10") int size) {
-        return userService.findAllUsersInfo(userIds, Pagination.toPageable(from, size));
+        if (userIds == null || userIds.isEmpty()) {
+            return userService.findAllUsers(Pagination.toPageable(from, size));
+        } else {
+            return userService.findAllUsersInId(userIds, Pagination.toPageable(from, size));
+        }
     }
 
     @PostMapping
