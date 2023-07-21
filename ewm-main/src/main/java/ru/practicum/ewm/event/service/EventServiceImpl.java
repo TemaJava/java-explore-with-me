@@ -312,7 +312,7 @@ public class EventServiceImpl implements EventService {
         return new ArrayList<>(views.values());
     }
 
-    public static void toEventFromUpdateRequest(Event event, UpdateEventRequest updateEventRequest ) {
+    public static void toEventFromUpdateRequest(Event event, UpdateEventRequest updateEventRequest) {
         if (Objects.equals(updateEventRequest.getStateAction(), UserEventState.CANCEL_REVIEW.name())) {
             event.setEventState(EventState.CANCELED);
         }
