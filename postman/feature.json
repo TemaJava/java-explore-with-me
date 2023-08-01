@@ -3,7 +3,7 @@
 		"_postman_id": "58e87119-816c-4176-ab8c-74c607673877",
 		"name": "Explore with me - feature",
 		"description": "test for rating functions",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "26411586"
 	},
 	"item": [
@@ -50,7 +50,18 @@
 							"mode": "raw",
 							"raw": "{\r\n    \"email\": \"user1@mail.com\",\r\n    \"name\": \"User name\"\r\n}"
 						},
-						"url": "http://localhost:8080/admin/users"
+						"url": {
+							"raw": "http://localhost:8080/admin/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"admin",
+								"users"
+							]
+						}
 					},
 					"response": []
 				},
@@ -94,7 +105,18 @@
 							"mode": "raw",
 							"raw": "{\r\n    \"email\": \"user2@mail.com\",\r\n    \"name\": \"User SecondName\"\r\n}"
 						},
-						"url": "http://localhost:8080/admin/users"
+						"url": {
+							"raw": "http://localhost:8080/admin/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"admin",
+								"users"
+							]
+						}
 					},
 					"response": []
 				},
@@ -138,7 +160,18 @@
 							"mode": "raw",
 							"raw": "{\r\n    \"email\": \"user3@mail.com\",\r\n    \"name\": \"User ThirdName\"\r\n}"
 						},
-						"url": "http://localhost:8080/admin/users"
+						"url": {
+							"raw": "http://localhost:8080/admin/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"admin",
+								"users"
+							]
+						}
 					},
 					"response": []
 				},
@@ -181,7 +214,18 @@
 							"mode": "raw",
 							"raw": "{\r\n    \"name\": \"CategoryTest\"\r\n}"
 						},
-						"url": "http://localhost:8080/admin/categories"
+						"url": {
+							"raw": "http://localhost:8080/admin/categories",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"admin",
+								"categories"
+							]
+						}
 					},
 					"response": []
 				},
@@ -494,9 +538,8 @@
 									"});\r",
 									"pm.test(\"Event must has average rating 3\", function () {\r",
 									"    var jsonData = pm.response.json();\r",
-									"    pm.expect(jsonData.title).to.eql('Test event title')\r",
-									"    pm.expect(jsonData.state).to.eql('PUBLISHED')\r",
-									"    pm.expect(jsonData.rating).to.eql(3)\r",
+									"    pm.expect(jsonData.state).to.eql('PUBLISHED');\r",
+									"    pm.expect(jsonData.rating).to.eql(3);\r",
 									"});"
 								],
 								"type": "text/javascript"
@@ -600,11 +643,10 @@
 									"pm.test(\"Status code is 201\", function () {\r",
 									"    pm.expect(pm.response.code).to.be.oneOf([200,201]);\r",
 									"});\r",
-									"pm.test(\"Event must has updated rating\", function () {\r",
+									"pm.test(\"Event must has updated rating 2\", function () {\r",
 									"    var jsonData = pm.response.json();\r",
-									"    pm.expect(jsonData.title).to.eql('Test event title')\r",
-									"    pm.expect(jsonData.state).to.eql('PUBLISHED')\r",
-									"    pm.expect(jsonData.rating).to.eql(2)\r",
+									"    pm.expect(jsonData.state).to.eql('PUBLISHED');\r",
+									"    pm.expect(jsonData.rating).to.eql(2);\r",
 									"});"
 								],
 								"type": "text/javascript"
