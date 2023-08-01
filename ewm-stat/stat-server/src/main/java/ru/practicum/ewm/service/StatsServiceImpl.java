@@ -2,6 +2,7 @@ package ru.practicum.ewm.service;
 
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import ru.practicum.ewm.exception.BadRequestException;
 import ru.practicum.ewm.mapper.StatsMapper;
 import ru.practicum.ewm.model.ViewStats;
 import ru.practicum.ewm.repository.StatsRepository;
@@ -30,10 +31,10 @@ public class StatsServiceImpl implements StatsService {
     }
 
     @Override
-    public List<ViewStatsDto> getStats(LocalDateTime start,
-                                       LocalDateTime end,
-                                       List<String> uris,
-                                       Boolean unique) {
+    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, Boolean unique) {
+        if (start.isAfter(end)) {
+            throw new BadRequestException("Start cant be after end");
+        }
         List<ViewStats> hits;
         if (unique && uris != null) {
             hits = statsRepository.getUniqueStatsByUrisAndTimestamps(start, end, uris);
