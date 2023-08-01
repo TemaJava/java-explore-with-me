@@ -21,6 +21,8 @@ import ru.practicum.ewm.exception.ObjectNotFoundException;
 import ru.practicum.ewm.exception.ValidationException;
 import ru.practicum.ewm.location.model.Location;
 import ru.practicum.ewm.location.repository.LocationRepository;
+import ru.practicum.ewm.rating.model.Rating;
+import ru.practicum.ewm.rating.repository.RatingRepository;
 import ru.practicum.ewm.user.pagination.Pagination;
 import ru.practicum.ewm.request.dto.RequestDto;
 import ru.practicum.ewm.request.mapper.RequestMapper;
@@ -33,6 +35,7 @@ import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
+import java.nio.ShortBuffer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -49,6 +52,7 @@ public class EventServiceImpl implements EventService {
     private final LocationRepository locationRepository;
     private final RequestRepository requestsRepository;
     private final UserRepository userRepository;
+    private final RatingRepository ratingRepository;
     private final StatService statService;
     LocalDateTime start = null;
     LocalDateTime end = null;
@@ -65,6 +69,7 @@ public class EventServiceImpl implements EventService {
                 .map(EventMapper::toEventFullDto)
                 .collect(Collectors.toList());
         getConfirmedRequests(fullEventDtoList);
+        getRatingForFullEvent(fullEventDtoList);
 
         return getViews(fullEventDtoList);
     }
@@ -117,6 +122,7 @@ public class EventServiceImpl implements EventService {
         eventRepository.save(event);
         EventFullDto fullEventDto = EventMapper.toEventFullDto(event);
         getConfirmedRequests(Collections.singletonList(fullEventDto));
+        getRatingForFullEvent(Collections.singletonList(fullEventDto));
         return getViews(Collections.singletonList(fullEventDto)).get(0);
     }
 
@@ -126,6 +132,7 @@ public class EventServiceImpl implements EventService {
                 .map(EventMapper::toShortEventDto)
                 .collect(Collectors.toList());
         getConfirmedRequestsToShort(shortEventDtos);
+        getRatingForShortEvent(shortEventDtos);
         return getViewsToShort(shortEventDtos, statService);
     }
 
@@ -148,6 +155,7 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.save(EventMapper.toEventFromNewDto(initiator, category, newEventDto));
         EventFullDto fullEventDto = EventMapper.toEventFullDto(event);
         fullEventDto.setConfirmedRequests(0);
+        fullEventDto.setRating(0L);
 
         return fullEventDto;
     }
@@ -159,6 +167,7 @@ public class EventServiceImpl implements EventService {
         EventFullDto fullEventDto = EventMapper.toEventFullDto(event);
         fullEventDto.setConfirmedRequests(requestsRepository
                 .findAllByEventIdAndStatus(eventId, RequestStatus.CONFIRMED).size());
+        getRatingForFullEvent(Collections.singletonList(fullEventDto));
         return getViews(Collections.singletonList(fullEventDto)).get(0);
     }
 
@@ -194,6 +203,7 @@ public class EventServiceImpl implements EventService {
         EventFullDto fullEventDto = EventMapper.toEventFullDto(event);
         fullEventDto.setConfirmedRequests(requestsRepository.findAllByEventIdAndStatus(eventId, RequestStatus.CONFIRMED)
                 .size());
+        getRatingForFullEvent(Collections.singletonList(fullEventDto));
         return getViews(Collections.singletonList(fullEventDto)).get(0);
     }
 
@@ -227,6 +237,7 @@ public class EventServiceImpl implements EventService {
             eventsShort.sort((e1, e2) -> e2.getViews().compareTo(e1.getViews()));
         }
         getConfirmedRequests(fullEventDtoList);
+        getRatingForFullEvent(fullEventDtoList);
         return eventsShort;
     }
 
@@ -243,6 +254,7 @@ public class EventServiceImpl implements EventService {
         EventFullDto fullEventDto = EventMapper.toEventFullDto(event);
         fullEventDto.setConfirmedRequests(requestsRepository.findAllByEventIdAndStatus(event.getId(),
                 RequestStatus.CONFIRMED).size());
+        getRatingForFullEvent(Arrays.asList(fullEventDto));
         statService.createView(HitMapper.toEndpointHit("ewm-main-service", request));
 
         return getViews(Collections.singletonList(fullEventDto)).get(0);
@@ -385,6 +397,63 @@ public class EventServiceImpl implements EventService {
         }
         if (startRange != null) {
             end = LocalDateTime.parse(endRange, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
+    }
+
+    private void getRatingForFullEvent(List<EventFullDto> dtos) {
+        List<Long> ids = dtos.stream().map(EventFullDto::getId).collect(Collectors.toList());
+        //айди ивента - лист оценок
+        HashMap<Long, List<Long>> ratingMap = new HashMap<>();
+        List<Rating> rates = ratingRepository.findAllByEventIdIn(ids);
+
+        if (!rates.isEmpty()) {
+            rates.forEach(element -> {
+                if (ratingMap.containsKey(element.getEvent().getId())) {
+                    List<Long> updateList = new ArrayList<>(ratingMap.get(element.getEvent().getId()));
+                    updateList.add(element.getRate());
+                    ratingMap.put(element.getEvent().getId(), updateList);
+                } else {
+                    ratingMap.put(element.getEvent().getId(), Arrays.asList(element.getRate()));
+                }
+            });
+
+            dtos.forEach(element -> {
+                Long total = 0L;
+                for (Long rate : ratingMap.get(element.getId())) {
+                    total += rate;
+                }
+                total = total/ratingMap.get(element.getId()).size();
+                element.setRating(total);
+            });
+        }
+    }
+
+
+    private void getRatingForShortEvent(List<EventShortDto> dtos) {
+        List<Long> ids = dtos.stream().map(EventShortDto::getId).collect(Collectors.toList());
+        //айди ивента - лист оценок
+        HashMap<Long, List<Long>> ratingMap = new HashMap<>();
+        List<Rating> rates = ratingRepository.findAllByEventIdIn(ids);
+
+        if (!rates.isEmpty()) {
+            rates.forEach(element -> {
+                if (ratingMap.containsKey(element.getEvent().getId())) {
+                    List<Long> updateList = new ArrayList<>(ratingMap.get(element.getEvent().getId()));
+                    updateList.add(element.getRate());
+                    ratingMap.put(element.getEvent().getId(), updateList);
+                } else {
+                    ratingMap.put(element.getEvent().getId(), Arrays.asList(element.getRate()));
+                }
+            });
+
+            dtos.forEach(element -> {
+                Long total = 0L;
+                for (Long rate : ratingMap.get(element.getId())) {
+                    total += rate;
+                }
+                total = total/ratingMap.get(element.getId()).size();
+                element.setRating(total);
+            });
         }
     }
 }
