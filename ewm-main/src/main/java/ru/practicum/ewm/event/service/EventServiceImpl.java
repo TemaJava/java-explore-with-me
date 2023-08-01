@@ -35,7 +35,6 @@ import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
-import java.nio.ShortBuffer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -422,7 +421,7 @@ public class EventServiceImpl implements EventService {
                 for (Long rate : ratingMap.get(element.getId())) {
                     total += rate;
                 }
-                total = total/ratingMap.get(element.getId()).size();
+                total = total / ratingMap.get(element.getId()).size();
                 element.setRating(total);
             });
         }
@@ -451,7 +450,7 @@ public class EventServiceImpl implements EventService {
                 for (Long rate : ratingMap.get(element.getId())) {
                     total += rate;
                 }
-                total = total/ratingMap.get(element.getId()).size();
+                total = total / ratingMap.get(element.getId()).size();
                 element.setRating(total);
             });
         }
